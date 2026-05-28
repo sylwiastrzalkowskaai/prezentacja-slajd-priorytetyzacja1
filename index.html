@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f7;padding:14px;font-size:12px;color:#1a1a2e}
+h1{text-align:center;font-size:15px;font-weight:800;margin-bottom:3px}
+.subtitle{text-align:center;font-size:10px;color:#666;margin-bottom:12px}
+
+/* NAV — fazy + projekty */
+.nav-wrap{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.phase-btn{padding:5px 12px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;border:2px solid;transition:all .15s;letter-spacing:.4px}
+.phase-btn.active{color:#fff}
+.proj-nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.proj-btn{padding:4px 10px;border-radius:20px;cursor:pointer;font-size:10px;font-weight:600;border:1.5px solid;background:#fff;transition:all .15s}
+.proj-btn.active{color:#fff}
+.proj-btn:hover:not(.active){opacity:.8}
+
+/* PANEL */
+.panel{background:#fff;border-radius:10px;border:2px solid #e5e7eb;overflow:hidden}
+.panel-header{padding:12px 16px;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.panel-title{font-size:13px;font-weight:700}
+.panel-sub{font-size:10px}
+.verdict-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px}
+
+/* STATS ROW */
+.stats-row{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid #f0f2f7;flex-wrap:wrap}
+.stat-box{background:#f8f9ff;border-radius:6px;padding:7px 12px;text-align:center;flex:1;min-width:90px}
+.stat-num{font-size:17px;font-weight:700}
+.stat-lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.4px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:700px}
+th{background:#1e3a8a;color:#fff;padding:7px 10px;font-size:9.5px;font-weight:700;text-align:left;letter-spacing:.3px;white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid #f0f2f7;font-size:10px;vertical-align:top;line-height:1.5}
+tr:hover td{background:#fafbff}
+.q-num{color:#999;font-weight:700;font-size:10px;width:24px}
+.q-text{color:#333;max-width:180px;font-size:10px}
+.dec-tak{color:#16a34a;font-weight:700;font-size:10px;white-space:nowrap}
+.dec-nie{color:#dc2626;font-weight:700;font-size:10px;white-space:nowrap}
+.dec-partial{color:#d97706;font-weight:700;font-size:10px;white-space:nowrap}
+.action-txt{color:#555;font-size:9.5px}
+.cost-txt{color:#7c3aed;font-weight:600;font-size:10px;white-space:nowrap}
+.time-txt{color:#2563eb;font-weight:600;font-size:10px;white-space:nowrap}
+.comment-txt{color:#666;font-size:9.5px;font-style:italic}
+.sum-box{margin:10px 16px;border-radius:6px;padding:9px 12px;font-size:10px;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>Feasibility Study — 18 inicjatyw AI · AutoPartner Max S.A.</h1>
+<p class="subtitle">15 pytań wykonalności technologicznej · wg szablonu Feasibility_Questions_PL · TAK / JESZCZE NIE / wymagane działania / koszt / czas</p>
+
+<div class="nav-wrap" id="phase-nav"></div>
+<div class="proj-nav" id="proj-nav"></div>
+<div class="panel" id="main-panel"></div>
+
+<script>
+const FAZY=[
+  {id:1,name:"Faza I — Wpływ i weryfikacja",col:"#16a34a",light:"#f0fdf4"},
+  {id:2,name:"Faza II — Identyfikacja i dobór",col:"#2563eb",light:"#dbeafe"},
+  {id:3,name:"Faza III — Wycena i oferta",col:"#d97706",light:"#fef3c7"},
+  {id:4,name:"Faza IV — Wynik i follow-up",col:"#7c3aed",light:"#f5f3ff"},
+];
+
+const PROJEKTY=[
+  /* FAZA 1 */
+  {id:1,faza:1,name:"Parsowanie i kategoryzacja e-maili (LLM)",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"30–60k PLN",czasPilota:"4–6 tyg.",
+   pytania:[
+    {q:"Moc obliczeniowa (GPU)?",dec:"TAK",action:"Brak GPU — LLM przez API (OpenAI/Claude). CPU wystarczy.",koszt:"—",czas:"—",comment:"API call = ~0,01 USD per e-mail. 1000 maili/dzień = ~300 USD/mc."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Logi maili w CRM — brak dodatkowych wymagań storage.",koszt:"—",czas:"—",comment:"Archiwa e-mail już w systemie."},
+    {q:"Integracja z systemami?",dec:"TAK",action:"API do skrzynki mailowej (IMAP/Exchange) + CRM webhook. Standardowe.",koszt:"5–10k PLN",czas:"1–2 tyg.",comment:"Paweł IT jako owner integracji. Exchange connector dostępny."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Przetwarzanie asynchroniczne — mail nie wymaga latency <1sek.",koszt:"—",czas:"—",comment:"Batch processing co 5 min wystarczy."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"WYMAGA PRACY",action:"Treści maili klientów B2B przez API LLM → umowa DPA z dostawcą. Anonimizacja nazw klientów w promptach.",koszt:"3–5k PLN (legal)",czas:"1 tyg.",comment:"B2B — niższe ryzyko RODO niż B2C. Zero Data Retention API."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Handlowiec widzi kategorię + może poprawić. Pełna przejrzystość.",koszt:"—",czas:"—",comment:"HITL: człowiek koryguje błędne klasyfikacje."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Backend — bez interfejsu użytkownika. Wynik widoczny w CRM.",koszt:"—",czas:"—",comment:"Desktop CRM. Brak wymagań mobilnych."},
+    {q:"Dane — dostępność i jakość?",dec:"TAK",action:"Historia maili dostępna. Potrzebne ~500 przykładowych maili do prompt-engineeringu.",koszt:"2k PLN (etykietowanie)",czas:"1 tyg.",comment:"RAG na historii — nie fine-tune. Szybkie wdrożenie."},
+    {q:"Zespół wewnętrzny?",dec:"TAK",action:"Bartek (Analytics) + 1 dev. Możliwy outsourcing API integracji.",koszt:"15–25k PLN",czas:"—",comment:"Najprostszy projekt z Fazy I pod kątem zasobów."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Prompt update przy nowych kategoriach. Brak retreningu modelu.",koszt:"1k PLN/mc",czas:"—",comment:"LLM API = brak retreningu. Tylko aktualizacja promptów."},
+    {q:"Skalowanie?",dec:"TAK",action:"API skaluje automatycznie. Brak barier.",koszt:"Proporcjonalnie do liczby maili",czas:"—",comment:"Cloud-native z dnia 1."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Shadow mode 2 tyg.: AI klasyfikuje, ale nie wysyła do CRM. Porównanie z ręczną klasyfikacją.",koszt:"—",czas:"2 tyg.",comment:"Metryki: precision/recall na kategoriach."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"LLM kategoryzacja maili to sprawdzony use case. Dokładność >90% typowa."},
+    {q:"Całkowite koszty?",dec:"NISKIE",action:"—",koszt:"30–60k PLN jednorazowo + 2k/mc",czas:"—",comment:"Najtańszy projekt Fazy I."},
+    {q:"Harmonogram realistyczny?",dec:"TAK",action:"Pilot MVP: 4–6 tygodni.",koszt:"—",czas:"4–6 tyg.",comment:"Start możliwy natychmiast po decyzji zarządu."},
+   ]},
+
+  {id:2,faza:1,name:"Transkrypcja rozmów telefonicznych (STT)",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"50–90k PLN",czasPilota:"6–8 tyg.",
+   pytania:[
+    {q:"Moc obliczeniowa (GPU)?",dec:"TAK",action:"Whisper API lub Azure Speech — chmura, brak GPU.",koszt:"~0,006 USD/min audio",czas:"—",comment:"1000 rozmów/dzień × 5 min = 300 USD/dzień. Sprawdź wolumen."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Audio nie przechowywane długoterminowo — tylko transkrypt. ~100 MB/dzień tekstu.",koszt:"—",czas:"—",comment:"RODO: nagrania audio wymagają zgody. Transkrypt jako notatka — OK."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"Integracja VoIP z silnikiem STT zależy od systemu centrali. Weryfikacja dostawcy centrali.",koszt:"20–40k PLN",czas:"3–4 tyg.",comment:"Kluczowe: czy centrala VoIP ma API do streamingu audio? To może być bloker."},
+    {q:"Architektura sieci?",dec:"WYMAGA WERYFIKACJI",action:"Streaming audio przez sieć — wymagana niska latency i stabilność. Weryfikacja przepustowości.",koszt:"5k PLN (audyt)",czas:"1 tyg.",comment:"Jeśli VoIP on-premise → dane muszą wyjść do chmury STT. Sprawdź politykę IT."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"WYMAGA PRACY",action:"Nagrywanie rozmów → zgoda klienta (komunikat 'rozmowa jest nagrywana'). DPA z dostawcą STT.",koszt:"5k PLN (legal)",czas:"1–2 tyg.",comment:"RODO: treść rozmowy to dane osobowe. Klient B2B musi być poinformowany."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Transkrypt widoczny dla handlowca — może korygować. Pełna przejrzystość.",koszt:"—",czas:"—",comment:"AI tworzy notatkę, handlowiec weryfikuje i zatwierdza."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Desktop CRM — transkrypt jako notatka do karty zapytania.",koszt:"—",czas:"—",comment:"Handlowiec widzi wynik w CRM po zakończeniu rozmowy."},
+    {q:"Dane — dostępność i jakość?",dec:"TAK",action:"Potrzebny słownik terminów motoryzacyjnych do fine-tune lub prompt-context.",koszt:"3k PLN",czas:"1 tyg.",comment:"STT działa gorzej z nazwami własnymi i terminami technicznymi. Słownik poprawia accuray o 10–15%."},
+    {q:"Zespół wewnętrzny?",dec:"CZĘŚCIOWO",action:"Dev od integracji VoIP niezbędny. Bartek nadzoruje. Możliwy outsourcing.",koszt:"20–30k PLN",czas:"—",comment:"VoIP integracja to specjalistyczna wiedza. Weryfikuj kompetencje wewnętrzne."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Aktualizacja słownika przy nowych modelach aut/częściach. Brak retreningu STT.",koszt:"1k PLN/mc",czas:"—",comment:"Prompt context update wystarczy dla nowego słownictwa."},
+    {q:"Skalowanie?",dec:"TAK",action:"API skaluje. Koszt rośnie proporcjonalnie do wolumenu rozmów.",koszt:"Proporcjonalnie",czas:"—",comment:"Sprawdź cennik przy 10× wolumenie."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Testy na 100 nagraniach testowych. Metryka: Word Error Rate (WER) <15% dla terminów motoryzacyjnych.",koszt:"—",czas:"2 tyg.",comment:"WER branżowy standard. Handlowcy oceniają jakość notatek."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"ŚREDNIE-WYSOKIE",action:"Zależy od jakości VoIP i obecności szumów. Pilot na wybranych stanowiskach.",koszt:"—",czas:"—",comment:"Whisper osiąga WER <10% dla czystego audio. Centrala VoIP może wprowadzać kompresję."},
+    {q:"Całkowite koszty?",dec:"ŚREDNIE",action:"—",koszt:"50–90k PLN jednorazowo + 3k/mc",czas:"—",comment:"Bloker: koszt integracji VoIP może być wyższy niż szacowany."},
+    {q:"Harmonogram realistyczny?",dec:"TAK — z zastrzeżeniem",action:"Pilot: 6–8 tyg. Warunek: weryfikacja API centrali VoIP w tygodniu 1.",koszt:"—",czas:"6–8 tyg.",comment:"Ryzyko przesunięcia jeśli centrala VoIP wymaga firmware upgrade."},
+   ]},
+
+  {id:3,faza:1,name:"Bramka weryfikacji kompletności danych",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"15–30k PLN",czasPilota:"2–3 tyg.",
+   pytania:[
+    {q:"Moc obliczeniowa (GPU)?",dec:"TAK",action:"Rules engine — CPU, brak GPU, brak LLM call.",koszt:"—",czas:"—",comment:"Najprostszy komponent technicznie z całej listy."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Brak dodatkowych wymagań.",koszt:"—",czas:"—",comment:"Logi decyzji bramki = kilka KB/dzień."},
+    {q:"Integracja z systemami?",dec:"TAK",action:"Integracja z wyjściem parsera (projekt #1/#2) lub z formularzem CRM.",koszt:"3–5k PLN",czas:"1 tyg.",comment:"Może działać jako standalone jeśli #1 nie jest gotowy."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Synchroniczny call — decyzja <100ms. Brak wymagań specjalnych.",koszt:"—",czas:"—",comment:"Prosta funkcja walidacyjna."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"TAK",action:"Brak danych osobowych w regułach walidacji.",koszt:"—",czas:"—",comment:"Niskie ryzyko regulacyjne."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Rules engine = w pełni wyjaśnialny. Klient widzi co musi uzupełnić.",koszt:"—",czas:"—",comment:"'Brakuje: model, rocznik, typ silnika' — jasna informacja."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Backendowy komponent. Wynik w UI CRM/formularzu.",koszt:"—",czas:"—",comment:"Desktop i mobile (formularz B2B)."},
+    {q:"Dane — dostępność i jakość?",dec:"TAK",action:"Schemat wymaganych pól per kategoria — do zdefiniowania z Martą (Product Data).",koszt:"1k PLN (warsztat)",czas:"3 dni",comment:"Kluczowe: uzgodnić co jest 'kompletnym' zapytaniem per kategoria."},
+    {q:"Zespół wewnętrzny?",dec:"TAK",action:"1 dev (2–3 dni pracy). Możliwy wewnętrznie.",koszt:"5–10k PLN",czas:"—",comment:"Najprostszy technicznie — juniorski dev wystarczy."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Aktualizacja reguł przy nowych kategoriach. Bez retreningu.",koszt:"<1k PLN/mc",czas:"—",comment:"Reguły w konfiguracji — zmiana bez deploymentu."},
+    {q:"Skalowanie?",dec:"TAK",action:"Trivialnie skalowalne — stateless function.",koszt:"—",czas:"—",comment:"Brak barier skalowania."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Unit testy reguł + testy na 100 historycznych zapytaniach.",koszt:"—",czas:"3 dni",comment:"100% coverage reguł wymagane przed wdrożeniem."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"BARDZO WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"Deterministyczny — 100% poprawności jeśli reguły poprawne."},
+    {q:"Całkowite koszty?",dec:"BARDZO NISKIE",action:"—",koszt:"15–30k PLN jednorazowo + <1k/mc",czas:"—",comment:"Najtańszy projekt z całej listy 18."},
+    {q:"Harmonogram realistyczny?",dec:"TAK",action:"Pilot: 2–3 tygodnie. Najszybszy z listy.",koszt:"—",czas:"2–3 tyg.",comment:"Może być gotowy zanim inne projekty Fazy I startują."},
+   ]},
+
+  {id:4,faza:1,name:"Weryfikacja historii i integracja CEPiK (VIN Lookup)",
+   verdict:"REALIZOWALNY WARUNKOWO",verdictCol:"#d97706",
+   budzetPilota:"40–70k PLN",czasPilota:"6–10 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"API calls — brak GPU.",koszt:"—",czas:"—",comment:"CEPiK API + historia CRM = dwa REST calls."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Cache wyników CEPiK per numer rejestracyjny (Redis/DB).",koszt:"1k PLN",czas:"—",comment:"Cache redukuje liczbę API calls o 60–70% dla stałych klientów."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"Umowa dostępu do API CEPiK (GovTech Polska). Weryfikacja warunków korzystania.",koszt:"10–20k PLN + opłata za API",czas:"4–8 tyg.",comment:"Bloker #1: CEPiK API wymaga umowy z GovTech. Czas oczekiwania 4–8 tyg."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Async lookup — nie blokuje UI podczas oczekiwania na CEPiK.",koszt:"—",czas:"—",comment:"CEPiK może mieć latency 1–3 sek. Async wymagany."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"WYMAGA ANALIZY",action:"Weryfikacja uprawnień do dostępu CEPiK dla dystrybutora części. Nie każdy podmiot ma dostęp.",koszt:"5k PLN (legal)",czas:"2 tyg.",comment:"Bloker #2: CEPiK może wymagać uzasadnienia biznesowego dostępu."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"VIN to dane techniczne pojazdu — nie dane osobowe per se. Informacja dla klienta o weryfikacji.",koszt:"—",czas:"—",comment:"Transparentność: 'Weryfikujemy dane pojazdu z CEPiK'."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Backend + wynik w UI CRM.",koszt:"—",czas:"—",comment:"Desktop-first."},
+    {q:"Dane — dostępność i jakość?",dec:"TAK",action:"Historia zamówień CRM musi mieć powiązanie numer rejestracyjny ↔ klient.",koszt:"2k PLN (mapowanie)",czas:"1 tyg.",comment:"Weryfikacja: czy CRM przechowuje numery rejestracyjne? Może brakować w starszych rekordach."},
+    {q:"Zespół wewnętrzny?",dec:"CZĘŚCIOWO",action:"Dev od integracji API + Paweł IT. Prawnik do weryfikacji CEPiK.",koszt:"15–25k PLN",czas:"—",comment:"CEPiK integracja wymaga znajomości standardów GovTech API."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Monitoring CEPiK API availability. Fallback do ręcznego jeśli niedostępne.",koszt:"1k PLN/mc",czas:"—",comment:"CEPiK ma okna maintenance — fallback konieczny."},
+    {q:"Skalowanie?",dec:"TAK",action:"Cache + rate limiting per umowa CEPiK.",koszt:"—",czas:"—",comment:"Limity API CEPiK do negocjacji w umowie."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Testy na 200 historycznych przypadkach z potwierdzonym VIN.",koszt:"—",czas:"2 tyg.",comment:"Metryka: % poprawnie auto-uzupełnionych VIN."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"ŚREDNIE",action:"Zależy od uzyskania dostępu CEPiK. Bez tego projekt niemożliwy.",koszt:"—",czas:"—",comment:"Warunek konieczny: umowa CEPiK. Do weryfikacji w tygodniu 1."},
+    {q:"Całkowite koszty?",dec:"ŚREDNIE",action:"—",koszt:"40–70k PLN + opłata API/mc",czas:"—",comment:"Koszt API CEPiK zależy od modelu cenowego GovTech."},
+    {q:"Harmonogram realistyczny?",dec:"WYDŁUŻONY",action:"Pilot: 6–10 tyg. Zależy od czasu uzyskania dostępu CEPiK.",koszt:"—",czas:"6–10 tyg.",comment:"Ryzyko: administracyjne opóźnienia GovTech mogą wydłużyć projekt."},
+   ]},
+
+  /* FAZA 2 */
+  {id:5,faza:2,name:"Inteligentne wyszukiwanie katalogowe (Elasticsearch)",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"60–100k PLN",czasPilota:"6–8 tyg.",
+   pytania:[
+    {q:"Moc obliczeniowa (GPU)?",dec:"TAK",action:"Elasticsearch = CPU. Embeddings przez API. Brak GPU.",koszt:"~2k PLN/mc (Elastic Cloud)",czas:"—",comment:"Elastic Cloud lub własny cluster. Cloud łatwiejszy na start."},
+    {q:"Przestrzeń dyskowa?",dec:"WYMAGA PLANOWANIA",action:"1,8 mln SKU × embeddings = ~10–50 GB indeksu. Elasticsearch cluster sizing.",koszt:"5–10k PLN/mc (storage)",czas:"1 tyg. sizing",comment:"Zacznij od top 50k SKU → pełna baza w Fazie 2."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"Indeksowanie katalogu PIM → Elasticsearch. API query zamiast obecnego wyszukiwania ERP.",koszt:"20–35k PLN",czas:"3–4 tyg.",comment:"Kluczowe: pipeline aktualizacji indeksu przy zmianie katalogu (real-time lub batch)."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Elasticsearch query <100ms dla top wyników. Wymagania latency spełnione.",koszt:"—",czas:"—",comment:"P99 <500ms nawet dla 1,8 mln dokumentów przy poprawnym sharding."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"TAK",action:"Dane produktowe — brak danych osobowych. Niskie ryzyko.",koszt:"—",czas:"—",comment:"Dane katalogowe = niski poziom wrażliwości."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Wyniki wyszukiwania z confidence score. Handlowiec widzi ranking.",koszt:"—",czas:"—",comment:"'Znaleziono 3 pasujące produkty, pewność 94%' — transparentne."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Widget wyszukiwania w CRM (desktop) + API dla e-commerce B2B.",koszt:"5–10k PLN (UI)",czas:"2 tyg.",comment:"Jeden silnik — dwa frontendy."},
+    {q:"Dane — dostępność i jakość?",dec:"CZĘŚCIOWO",action:"Katalog wymaga czyszczenia top 50k SKU przed indeksowaniem. Niespójne opisy = złe wyniki.",koszt:"20–40k PLN (czyszczenie)",czas:"4–6 tyg.",comment:"Warunek wejścia pilota: top 50k SKU oczyszczone przez Martę (Product Data)."},
+    {q:"Zespół wewnętrzny?",dec:"CZĘŚCIOWO",action:"Dev od Elasticsearch + Marta (dane) + Paweł IT. Możliwy outsourcing setup.",koszt:"20–30k PLN",czas:"—",comment:"Elasticsearch to sprawdzona technologia — zewnętrzny spec na setup."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Re-indeksowanie przy aktualizacjach katalogu (pipeline automatyczny). Brak retreningu ML.",koszt:"2k PLN/mc",czas:"—",comment:"Automat: nowy SKU w PIM → automatycznie indeksowany w Elasticsearch."},
+    {q:"Skalowanie?",dec:"TAK",action:"Elasticsearch horizontal scaling. Pełne 1,8 mln SKU = Faza 2.",koszt:"Proporcjonalnie do klastra",czas:"—",comment:"Elastyczne skalowanie bez przepisywania kodu."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Benchmark na 500 historycznych zapytaniach. Metryki: MRR, NDCG@10.",koszt:"—",czas:"2 tyg.",comment:"Tomasz (Senior Handlowiec) jako ekspert walidujący trafność wyników."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"Elasticsearch semantic search to dojrzała technologia. Branżowy benchmark: >85% first-hit accuracy."},
+    {q:"Całkowite koszty?",dec:"ŚREDNIE",action:"—",koszt:"60–100k PLN + 5–10k/mc",czas:"—",comment:"Dominuje: czyszczenie danych katalogu + Elastic Cloud."},
+    {q:"Harmonogram realistyczny?",dec:"TAK — z warunkiem",action:"Pilot 50k SKU: 6–8 tyg. Warunek: czyszczenie danych startuje w tyg. 1.",koszt:"—",czas:"6–8 tyg.",comment:"Ścieżka krytyczna: PIM cleaning (4–6 tyg.) równolegle z budową indeksu (2–3 tyg.)."},
+   ]},
+
+  {id:6,faza:2,name:"Autoweryfikacja stanów magazynowych ERP (API)",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"20–40k PLN",czasPilota:"3–5 tyg.",
+   pytania:[
+    {q:"Moc obliczeniowa (GPU)?",dec:"TAK",action:"REST API call do ERP — brak GPU, brak ML.",koszt:"—",czas:"—",comment:"Prosty API proxy, zero AI computation."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Cache stanów (Redis, TTL 5 min). ~1 MB/1000 SKU.",koszt:"<1k PLN",czas:"—",comment:"Cache eliminuje przeciążenie ERP zapytaniami."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"ERP musi mieć REST API lub webservice dla stanów. Weryfikacja z Pawłem (IT).",koszt:"10–20k PLN",czas:"2–3 tyg.",comment:"Bloker: starsze ERP mogą nie mieć REST API — wymagany connector lub middleware."},
+    {q:"Architektura sieci?",dec:"WYMAGA WERYFIKACJI",action:"Stany w 186 oddziałach → zapytanie do centralnego ERP lub do lokalnych. Latency?",koszt:"2k PLN (audyt)",czas:"1 tyg.",comment:"Jeśli ERP on-premise w oddziałach → synchronizacja stanów z centralą musi być realtime."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"TAK",action:"Stany magazynowe = dane wewnętrzne. Brak danych osobowych.",koszt:"—",czas:"—",comment:"Standardowa autoryzacja API (API key lub OAuth)."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Wynik deterministyczny — 'Stan: 8 szt. w Magazyn Centralny Warszawa'.",koszt:"—",czas:"—",comment:"Pełna wyjaśnialność — bezpośrednie dane z ERP."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Widget w UI CRM obok wyników wyszukiwania katalogu.",koszt:"3–5k PLN (UI)",czas:"1 tyg.",comment:"Desktop CRM."},
+    {q:"Dane — dostępność i jakość?",dec:"TAK",action:"Stany ERP aktualne — to ich podstawowa funkcja. Weryfikacja synchronizacji oddziałów.",koszt:"—",czas:"1 tyg.",comment:"Ryzyko: stany w oddziałach lokalnych mogą być opóźnione względem centrali."},
+    {q:"Zespół wewnętrzny?",dec:"TAK",action:"1 dev + Paweł IT (ERP API access). Realizowalny wewnętrznie.",koszt:"8–15k PLN",czas:"—",comment:"Prosty projekt API — junior dev wystarczy."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Cache invalidation automatyczna. Monitoring API availability ERP.",koszt:"<1k PLN/mc",czas:"—",comment:"Brak utrzymania ML — tylko monitoring SLA API."},
+    {q:"Skalowanie?",dec:"TAK",action:"Cache + connection pool. Skaluje trywialnie.",koszt:"—",czas:"—",comment:"Brak barier skalowania."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Porównanie wyników API z ręcznym sprawdzeniem ERP na 200 SKU.",koszt:"—",czas:"1 tyg.",comment:"Test: czy API zwraca te same stany co ręczne logowanie do ERP?"},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"BARDZO WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"Deterministyczny — jeśli ERP ma dobre dane, API je zwróci poprawnie."},
+    {q:"Całkowite koszty?",dec:"NISKIE",action:"—",koszt:"20–40k PLN jednorazowo + <1k/mc",czas:"—",comment:"Drugi najtańszy projekt po #3."},
+    {q:"Harmonogram realistyczny?",dec:"TAK",action:"Pilot: 3–5 tyg. Zależy od dostępności ERP API.",koszt:"—",czas:"3–5 tyg.",comment:"Jeśli ERP ma API → bardzo szybkie. Jeśli nie → +4 tyg. na connector."},
+   ]},
+
+  {id:7,faza:2,name:"Agregacja ofert dostawców zewnętrznych (API multi-source)",
+   verdict:"WARUNKOWO — FAZA 2",verdictCol:"#d97706",
+   budzetPilota:"150–250k PLN",czasPilota:"12–16 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"API aggregation — CPU only.",koszt:"—",czas:"—",comment:"Brak AI computation — pure integration project."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Cache wyników dostawców (TTL 15–30 min). ~10 MB/dzień.",koszt:"1k PLN",czas:"—",comment:"Wyniki wygasają szybko — ceny się zmieniają."},
+    {q:"Integracja z systemami?",dec:"NIE GOTOWE",action:"Każdy z 5–10 dostawców wymaga osobnej umowy API. Część dostawców może nie mieć API (tylko email/EDI).",koszt:"50–100k PLN (integracje)",czas:"8–12 tyg.",comment:"Bloker #1: onboarding partnerów. Realistycznie 2–3 dostawców na start pilota."},
+    {q:"Architektura sieci?",dec:"WYMAGA PROJEKTU",action:"Fan-out do wielu API równolegle (async) z timeout i fallback dla niedostępnych.",koszt:"15–25k PLN (architektura)",czas:"3–4 tyg.",comment:"Timeout per dostawca: 2 sek. Brak odpowiedzi = pominięty w wynikach."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"TAK",action:"Dane cenowe dostawców = poufne. Szyfrowanie i autoryzacja per dostawca.",koszt:"3k PLN",czas:"1 tyg.",comment:"Ceny dostawców nie mogą być widoczne poza systemem AutoPartner."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Pełna transparentność: handlowiec widzi cenę i termin per dostawca.",koszt:"—",czas:"—",comment:"System rekomendacyjny — handlowiec decyduje."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Desktop CRM — widok porównania dostawców.",koszt:"10–15k PLN (UI)",czas:"2 tyg.",comment:"Tabela: dostawca | cena | dostępność | termin."},
+    {q:"Dane — dostępność i jakość?",dec:"WYMAGA PRACY",action:"Mapowanie kodów SKU AutoPartner ↔ kody dostawców zewnętrznych. Niestandardowe mappingi.",koszt:"20–30k PLN",czas:"4–6 tyg.",comment:"Każdy dostawca używa własnych kodów produktów. Cross-reference table wymagana."},
+    {q:"Zespół wewnętrzny?",dec:"NIE",action:"Wymagany doświadczony developer integracji B2B + PM projektu. Outsourcing zalecany.",koszt:"50–80k PLN",czas:"—",comment:"Największy nakład pracy ze wszystkich projektów Fazy II."},
+    {q:"Konserwacja i retrening?",dec:"WYMAGA PLANU",action:"Monitoring każdego API per dostawca. Alert gdy dostawca niedostępny.",koszt:"5k PLN/mc",czas:"—",comment:"8–10 integracji = 8–10 punktów awarii. Wymaga NOC lub alertingu."},
+    {q:"Skalowanie?",dec:"TAK — z limitem",action:"Dodanie nowego dostawcy = nowa integracja. Skalowanie przez dodawanie partnerów.",koszt:"10–20k PLN per dostawca",czas:"2–4 tyg. per dostawca",comment:"Koszt skalowania wysoki — każdy dostawca to osobny projekt."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Testy per dostawca + testy integracyjne. Weryfikacja cen vs ręczne ofertowanie.",koszt:"5k PLN",czas:"3 tyg.",comment:"Metryka: czy cena z API = cenie z e-mail dostawcy?"},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"ŚREDNIE",action:"Zależy od onboardingu dostawców. Cel 5+ dostawców = 6+ miesięcy.",koszt:"—",czas:"—",comment:"Quick win: 2–3 dostawców z API w 3 miesiące. Pełny zakres = rok."},
+    {q:"Całkowite koszty?",dec:"WYSOKIE",action:"—",koszt:"150–250k PLN + 5–8k/mc",czas:"—",comment:"Najdroższy projekt Fazy II. Uzasadnienie: czas z 2 dni → 2 sek."},
+    {q:"Harmonogram realistyczny?",dec:"WYDŁUŻONY",action:"Pilot 2–3 dostawców: 12–16 tyg. Pełny rollout: 9–12 mc.",koszt:"—",czas:"12–16 tyg. pilot",comment:"Rekomendacja: start od 1 dostawcy z dobrym API jako PoC."},
+   ]},
+
+  {id:8,faza:2,name:"Rekomendacja zamienników przez silnik wiedzy AI",
+   verdict:"REALIZOWALNY WARUNKOWO",verdictCol:"#d97706",
+   budzetPilota:"80–140k PLN",czasPilota:"10–14 tyg.",
+   pytania:[
+    {q:"Moc obliczeniowa (GPU)?",dec:"TAK",action:"RAG + LLM przez API. Brak GPU.",koszt:"3–5k PLN/mc (API)",czas:"—",comment:"Inference przez API. Duży katalog zamienników = dużo tokenów kontekstu."},
+    {q:"Przestrzeń dyskowa?",dec:"WYMAGA PLANOWANIA",action:"Vector DB na zamiennikach + historii reklamacji. ~5–20 GB.",koszt:"2–3k PLN/mc (Vector DB)",czas:"1 tyg.",comment:"Qdrant lub Pinecone. Indeksowanie historii reklamacji wymagane."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"Dane reklamacji i zwrotów z ERP + dane zamienników z PIM + TecDoc API.",koszt:"25–40k PLN",czas:"4–6 tyg.",comment:"Bloker: historia reklamacji połączona z SKU (gap danych zidentyfikowany wcześniej)."},
+    {q:"Architektura sieci?",dec:"TAK",action:"API async — handlowiec czeka <3 sek. na rekomendacje.",koszt:"—",czas:"—",comment:"Acceptable latency dla kontekstu ofertowania."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"WYMAGA PRACY",action:"Historia reklamacji z danymi klientów przez LLM API → DPA wymagana. Anonimizacja.",koszt:"5k PLN",czas:"1 tyg.",comment:"Reklamacje mogą zawierać dane identyfikujące klienta."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"WYMAGA PRACY",action:"Model musi pokazywać DLACZEGO rekomenduje zamiennik (reklamowalność X%, zgodność VIN). Nie 'czarna skrzynka'.",koszt:"5k PLN (UI explainability)",czas:"2 tyg.",comment:"Wyjaśnialność kluczowa — handlowiec musi ufać rekomendacji."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Widget w CRM obok wyszukiwania. 2–3 rekomendacje z oceną.",koszt:"8–12k PLN (UI)",czas:"2 tyg.",comment:"Desktop-first. Wynik musi być czytelny i skanowalny."},
+    {q:"Dane — dostępność i jakość?",dec:"CZĘŚCIOWO",action:"Historia reklamacji niekompletna i niepołączona z SKU. Wymaga mapowania (plan 30 dni danych).",koszt:"20–30k PLN (data cleaning)",czas:"4–6 tyg.",comment:"Główny gap: reklamacje nie mają przypisanego SKU. Wymaga manualnego mapowania dla top 5k SKU."},
+    {q:"Zespół wewnętrzny?",dec:"CZĘŚCIOWO",action:"ML engineer lub doświadczony dev + Bartek (Analytics) + Marta (Product Data).",koszt:"30–50k PLN",czas:"—",comment:"RAG nie wymaga DS — ale wymaga dobrego engineera od LLM i Vector DB."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Aktualizacja Vector DB przy nowych reklamacjach (miesięczna). Brak retreningu LLM.",koszt:"2k PLN/mc",czas:"—",comment:"RAG = aktualizacja wiedzy bez retreningu modelu."},
+    {q:"Skalowanie?",dec:"TAK",action:"Vector DB skaluje. API calls proporcjonalnie do zapytań.",koszt:"Proporcjonalnie",czas:"—",comment:"Start od kategorii hamulców → rozszerzenie na wszystkie kategorie."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Tomasz (Senior) waliduje rekomendacje na 200 historycznych przypadkach. Metryka: % rekomendacji zaakceptowanych przez handlowca.",koszt:"5k PLN (ekspert)",czas:"3 tyg.",comment:"Human eval kluczowy — accuracy techniczna ≠ użyteczność dla handlowca."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"ŚREDNIE-WYSOKIE",action:"Zależy od jakości danych reklamacji.",koszt:"—",czas:"—",comment:"Jeśli dane dobre → wysoka skuteczność. Jeśli niekompletne → model uczy się na szumie."},
+    {q:"Całkowite koszty?",dec:"ŚREDNIE-WYSOKIE",action:"—",koszt:"80–140k PLN + 5–7k/mc",czas:"—",comment:"Dominuje: data cleaning + Vector DB + LLM API."},
+    {q:"Harmonogram realistyczny?",dec:"WYDŁUŻONY",action:"Pilot (hamulce): 10–14 tyg. Warunek: mapowanie reklamacji ↔ SKU przed startem.",koszt:"—",czas:"10–14 tyg.",comment:"Ścieżka krytyczna: data prep (6 tyg.) równolegle z budową silnika (4 tyg.)."},
+   ]},
+
+  {id:9,faza:2,name:"Autokontrola zgodności — blokada błędów doboru",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"35–60k PLN",czasPilota:"5–8 tyg.",
+   pytania:[
+    {q:"Moc obliczeniowa (GPU)?",dec:"TAK",action:"Rules engine + TecDoc API. Brak ML, brak GPU.",koszt:"Opłata TecDoc API",czas:"—",comment:"Deterministyczny — sprawdzenie reguł kompatybilności."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Cache kompatybilności VIN ↔ SKU z TecDoc. ~500 MB.",koszt:"<1k PLN",czas:"—",comment:"Cache dla popularnych modeli aut eliminuje powtórne API calls."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"TecDoc API (umowa + integracja) + historia reklamacji z ERP.",koszt:"15–25k PLN",czas:"3–4 tyg.",comment:"TecDoc licencja komercyjna — weryfikacja kosztów z dostawcą."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Synchroniczny call przy dodaniu SKU do oferty. <500ms acceptable.",koszt:"—",czas:"—",comment:"Blokada musi być natychmiastowa — user nie może dodać bez weryfikacji."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"TAK",action:"Dane techniczne — brak danych osobowych. Niskie ryzyko.",koszt:"—",czas:"—",comment:"TecDoc to dane o pojazdach i częściach — nie dane klientów."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Blokada z jasnym komunikatem: 'Ta część jest niezgodna z VIN XYZ wg TecDoc'. Override możliwy z uzasadnieniem.",koszt:"—",czas:"—",comment:"Wyjaśnialność kluczowa — handlowiec musi wiedzieć DLACZEGO blokada."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Inline walidacja w formularzu CRM przy dodawaniu SKU.",koszt:"5k PLN (UI)",czas:"1 tyg.",comment:"UX: czerwone podświetlenie + tooltip z wyjaśnieniem."},
+    {q:"Dane — dostępność i jakość?",dec:"CZĘŚCIOWO",action:"Historia reklamacji per SKU per zastosowanie niekompletna. Start tylko od danych TecDoc.",koszt:"10k PLN (TecDoc setup)",czas:"2 tyg.",comment:"Faza 1 tylko TecDoc. Faza 2: dodaj historię reklamacji wewnętrznych."},
+    {q:"Zespół wewnętrzny?",dec:"TAK",action:"1 dev + Paweł IT (TecDoc API). Realizowalny wewnętrznie.",koszt:"10–15k PLN",czas:"—",comment:"Prosta integracja API — bez ML."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"TecDoc aktualizuje się automatycznie. Cache invalidation przy update. Brak retreningu.",koszt:"Opłata TecDoc/mc",czas:"—",comment:"TecDoc utrzymuje aktualne dane kompatybilności."},
+    {q:"Skalowanie?",dec:"TAK",action:"Cache + rate limiting TecDoc. Skalowanie przez cache expansion.",koszt:"Proporcjonalnie do TecDoc limitu",czas:"—",comment:"Limity API TecDoc do negocjacji."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Testy na 1000 historycznych par VIN+SKU. Weryfikacja: ile błędnych doboru było zablokowanych?",koszt:"—",czas:"2 tyg.",comment:"Metryki: false positive rate (fałszywe blokady) i false negative (blokada nie była)."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"TecDoc to sprawdzone źródło danych kompatybilności. Branżowy standard."},
+    {q:"Całkowite koszty?",dec:"NISKIE-ŚREDNIE",action:"—",koszt:"35–60k PLN + opłata TecDoc/mc",czas:"—",comment:"Dominuje: licencja TecDoc. Jednorazowe koszty niskie."},
+    {q:"Harmonogram realistyczny?",dec:"TAK",action:"Pilot (hamulce + układ kierowniczy): 5–8 tyg.",koszt:"—",czas:"5–8 tyg.",comment:"Najpierw części bezpieczeństwa — tam ryzyko błędu najwyższe."},
+   ]},
+
+  /* FAZA 3 */
+  {id:10,faza:3,name:"Autowycena i dynamiczna kalkulacja marży",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"70–120k PLN",czasPilota:"8–12 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"Scoring ML = CPU. Brak GPU.",koszt:"<1k PLN/mc",czas:"—",comment:"Prosta klasyfikacja / regresja — nie wymaga GPU."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Historia transakcji 3+ lata w bazie. ~5 GB structured data.",koszt:"—",czas:"—",comment:"Dane już w ERP. Wymagana ekstrakcja do training dataset."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"ERP (ceny zakupu) + CRM (historia rabatów, segment klienta) + TMS (koszty logistyki).",koszt:"20–35k PLN",czas:"3–5 tyg.",comment:"TMS↔ERP połączenie to bloker (zidentyfikowany w audycie danych)."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Scoring <500ms przy otwieraniu oferty. API call.",koszt:"—",czas:"—",comment:"Batch scoring też możliwy (pre-compute dla stałych klientów)."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"TAK",action:"Dane cenowe wewnętrzne — bez danych osobowych. Kontrola dostępu do modelu cenowego.",koszt:"—",czas:"—",comment:"Progi marży to tajemnica handlowa — dostęp tylko dla uprawnionych."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Model musi pokazywać czynniki decyzji: 'segment A + historia 84k PLN + marża 18% → sugerowana cena X PLN'.",koszt:"5k PLN (explainability UI)",czas:"2 tyg.",comment:"SHAP values lub prosty breakdown wystarczy."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Alert inline w formularzu oferty. Desktop CRM.",koszt:"5k PLN",czas:"1 tyg.",comment:"Połączony z projektem #11 (bramka marżowa)."},
+    {q:"Dane — dostępność i jakość?",dec:"CZĘŚCIOWO",action:"Koszty logistyki niekompletne w danych. Rabaty bez kontekstu (brak 'dlaczego'). Wymagane czyszczenie.",koszt:"15–25k PLN",czas:"3–4 tyg.",comment:"Bez kosztów logistyki marża jest szacunkowa, nie dokładna."},
+    {q:"Zespół wewnętrzny?",dec:"CZĘŚCIOWO",action:"Data Scientist lub ML engineer. Bartek może nadzorować, ale nie zbuduje modelu.",koszt:"40–60k PLN (external DS)",czas:"—",comment:"Rekomendacja: outsourcing DS do budowy modelu v1, transfer wiedzy do Bartka."},
+    {q:"Konserwacja i retrening?",dec:"WYMAGA PLANU",action:"Kwartalny retrening na nowych danych transakcji. Monitoring dryftu modelu.",koszt:"5k PLN/mc",czas:"—",comment:"Model cenowy musi być aktualny — rynek się zmienia."},
+    {q:"Skalowanie?",dec:"TAK",action:"Model serwowany jako API. Skalowanie cloud-native.",koszt:"Proporcjonalnie",czas:"—",comment:"Pilot 1 kategoria → rozszerzenie na wszystkie."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Backtesting: model na danych hist. vs faktyczne wyniki (marże, konwersje). Shadow mode 4 tyg.",koszt:"—",czas:"4 tyg.",comment:"Shadow mode: model liczy cenę ale handlowiec decyduje samodzielnie. Porównanie po 4 tyg."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"ŚREDNIE-WYSOKIE",action:"Zależy od jakości danych historycznych.",koszt:"—",czas:"—",comment:"Branżowy benchmark dla pricing ML: +2–4 pp marży. Osiągalne jeśli dane czyste."},
+    {q:"Całkowite koszty?",dec:"ŚREDNIE",action:"—",koszt:"70–120k PLN + 5–7k/mc",czas:"—",comment:"Dominuje: DS + data cleaning + monitoring."},
+    {q:"Harmonogram realistyczny?",dec:"TAK — z warunkiem",action:"Pilot: 8–12 tyg. Warunek: mapowanie kosztów TMS→ERP jako prerequisite.",koszt:"—",czas:"8–12 tyg.",comment:"Ścieżka krytyczna: dane (4 tyg.) równolegle z modelem (4–6 tyg.)."},
+   ]},
+
+  {id:11,faza:3,name:"Bramka marżowa — systemowa kontrola rentowności",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"40–80k PLN",czasPilota:"6–8 tyg.",
+   pytania:[
+    {q:"Moc obliczeniowa (GPU)?",dec:"TAK",action:"Rules engine. Brak GPU, brak ML.",koszt:"—",czas:"—",comment:"Deterministyczny scoring."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Logi alertów w CRM. ~10 MB/dzień.",koszt:"—",czas:"—",comment:"Brak dodatkowych wymagań."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"ERP (ceny zakupu) + TMS (koszty dostawy) → alert w CRM przy tworzeniu oferty.",koszt:"15–25k PLN",czas:"2–3 tyg.",comment:"Ten sam TMS-ERP bloker co w #10. Bez kosztów dostawy marża jest szacunkowa."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Synchroniczny event przy zapisie oferty. <100ms.",koszt:"—",czas:"—",comment:"Alert musi być natychmiastowy — user nie może zapisać oferty bez wiedzy o marży."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"TAK",action:"Progi marży to dane poufne — tylko dla upoważnionych (manager, CFO).",koszt:"—",czas:"—",comment:"Role-based access: handlowiec widzi alert, manager widzi próg i historię."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Alert z pełnym rozkładem: 'Marża 4,2%: zakup 148 PLN, sprzedaż 175 PLN, rabat 10%, dostawa 18 PLN'.",koszt:"—",czas:"—",comment:"Wyjaśnialność = kluczowa dla adopcji przez handlowców."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Inline alert w CRM + dashboard dla CFO/managera.",koszt:"8–12k PLN (dashboard)",czas:"2 tyg.",comment:"Desktop CRM. Power BI lub Metabase dla CFO."},
+    {q:"Dane — dostępność i jakość?",dec:"CZĘŚCIOWO",action:"Koszty logistyki niekompletne (TMS-ERP gap). Start z szacunkowym kosztem dostawy per oddział.",koszt:"5k PLN (mapowanie estymacyjne)",czas:"1 tyg.",comment:"Faza 1: szacunkowy koszt (np. 15 PLN flat). Faza 2: dokładny per zamówienie."},
+    {q:"Zespół wewnętrzny?",dec:"TAK",action:"Bartek (Analytics) + 1 dev. Realizowalny wewnętrznie.",koszt:"15–25k PLN",czas:"—",comment:"To jest Pilot #1 z rekomendacji — dostępny wewnętrznie."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Progi marży aktualizowane kwartalnie przez CFO. Brak retreningu ML.",koszt:"<1k PLN/mc",czas:"—",comment:"Konfiguracja progów w panelu admina — bez deploymentu."},
+    {q:"Skalowanie?",dec:"TAK",action:"Rules engine skaluje trywialnie. Rollout na wszystkie oddziały = konfiguracja.",koszt:"Minimalne",czas:"2–3 tyg.",comment:"Po pilotowaniu 3 oddziałów → rollout ogólnopolski w 2 tygodnie."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Shadow mode 2 tyg.: alert liczy marże ale nie blokuje. Porównanie z historią.",koszt:"—",czas:"2 tyg.",comment:"Weryfikacja: ile % historycznych ofert było poniżej progu?"},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"BARDZO WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"Deterministyczny — jeśli dane poprawne, alert zawsze właściwy."},
+    {q:"Całkowite koszty?",dec:"NISKIE",action:"—",koszt:"40–80k PLN + <1k/mc",czas:"—",comment:"To jest PILOT #1 z listy rekomendacji."},
+    {q:"Harmonogram realistyczny?",dec:"TAK",action:"Pilot: 6–8 tyg. (shadow 2 tyg. + live 4 tyg.).",koszt:"—",czas:"6–8 tyg.",comment:"Najlepszy kandydat na pierwszy pilot."},
+   ]},
+
+  {id:12,faza:3,name:"Automatyczne generowanie PDF i interaktywny link (Quick-Pay)",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"35–65k PLN",czasPilota:"5–7 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"PDF generation = CPU (Puppeteer/PDFKit). Brak GPU.",koszt:"—",czas:"—",comment:"Standardowe biblioteki open-source."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"PDF storage per oferta. ~100 KB/PDF × 500 ofert/dzień = ~50 MB/dzień.",koszt:"<1k PLN/mc (S3/storage)",czas:"—",comment:"Cloud object storage — minimalny koszt."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"CRM webhook po zatwierdzeniu oferty → trigger PDF generation → wysyłka link.",koszt:"10–15k PLN",czas:"2–3 tyg.",comment:"Quick-Pay: integracja z bramką płatniczą (Stripe/PayU) = Faza 2. Pilot bez płatności."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Async generation — PDF generowany w tle, link wysyłany gdy gotowy.",koszt:"—",czas:"—",comment:"Generowanie PDF: <2 sek. Nie blokuje handlowca."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"TAK",action:"Unique link z tokenem JWT. Wygaśnięcie po 72h lub akceptacji. HTTPS wymagany.",koszt:"2k PLN (security review)",czas:"1 tyg.",comment:"Tokenized links = standard bezpieczeństwa. Brak RODO issues (B2B oferta)."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"PDF z pełną specyfikacją oferty — klient widzi wszystko. Brak 'czarnej skrzynki'.",koszt:"—",czas:"—",comment:"Pełna transparentność."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Link działa na desktop i mobile (klient po stronie). Handlowiec desktop CRM.",koszt:"3k PLN (responsive link page)",czas:"1 tyg.",comment:"Landing page klienta musi być responsive."},
+    {q:"Dane — dostępność i jakość?",dec:"TAK",action:"Dane oferty z CRM + szablony PDF firmy (logo, warunki). Marta: szablon produktowy.",koszt:"2k PLN (szablon)",czas:"3 dni",comment:"Gotowe dane — tylko formatowanie."},
+    {q:"Zespół wewnętrzny?",dec:"TAK",action:"1 frontend dev + 1 backend dev. Realizowalny wewnętrznie.",koszt:"15–25k PLN",czas:"—",comment:"Puppeteer/PDFKit = standardowe narzędzia. Brak specjalistów AI potrzebnych."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Aktualizacja szablonu PDF (marketing). Monitoring generowania (error rate).",koszt:"<1k PLN/mc",czas:"—",comment:"Brak ML = brak retreningu. Prosta utrzymanie."},
+    {q:"Skalowanie?",dec:"TAK",action:"PDF generation skaluje trywialnie przez queue (Redis + workers).",koszt:"Minimalne",czas:"—",comment:"Microservice pattern — łatwe skalowanie."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Testy generowania PDF dla 100 typów ofert. Testy linku na różnych urządzeniach.",koszt:"—",czas:"1 tyg.",comment:"Metryki: czas generowania, % otwartych linków, czas do akceptacji."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"BARDZO WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"PDF generation to dojrzała technologia. Ryzyko niskie."},
+    {q:"Całkowite koszty?",dec:"NISKIE",action:"—",koszt:"35–65k PLN + <1k/mc",czas:"—",comment:"Quick-Pay (bramka płatnicza) to Faza 2 — +30–50k PLN."},
+    {q:"Harmonogram realistyczny?",dec:"TAK",action:"Pilot bez Quick-Pay: 5–7 tyg.",koszt:"—",czas:"5–7 tyg.",comment:"Quick win. Handlowcy natychmiast zobaczą efekt (nie piszą maili od zera)."},
+   ]},
+
+  {id:13,faza:3,name:"Automatyczna wysyłka spersonalizowanej oferty (LLM)",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"25–50k PLN",czasPilota:"4–6 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"LLM przez API. Brak GPU.",koszt:"~0,01 USD per wiadomość",czas:"—",comment:"500 ofert/dzień = ~5 USD/dzień. Pomijalne."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Historia wygenerowanych wiadomości w CRM. ~1 KB/wiadomość.",koszt:"—",czas:"—",comment:"Śladowe wymagania."},
+    {q:"Integracja z systemami?",dec:"TAK",action:"CRM trigger po zatwierdzeniu oferty → LLM API → wysyłka (SMTP/SendGrid).",koszt:"5–10k PLN",czas:"1–2 tyg.",comment:"Standardowe integracje — Make.com lub n8n wystarczą."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Async — wysyłka po zatwierdzeniu. Handlowiec nie czeka.",koszt:"—",czas:"—",comment:"Async dispatch. LLM generuje ~2 sek."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"WYMAGA PRACY",action:"Treść oferty przez LLM API → DPA z dostawcą. Podgląd przed wysyłką.",koszt:"2k PLN (DPA)",czas:"1 tyg.",comment:"Handlowiec zawsze widzi podgląd — nie wysyła bez akceptacji."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Handlowiec widzi i zatwierdza wiadomość przed wysyłką. Pełna kontrola.",koszt:"—",czas:"—",comment:"HITL: handlowiec może edytować lub odrzucić wygenerowaną treść."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Podgląd w CRM desktop. Wysyłka email/SMS.",koszt:"—",czas:"—",comment:"No new device requirements."},
+    {q:"Dane — dostępność i jakość?",dec:"TAK",action:"Historia komunikacji z klientem w CRM. Dane oferty. Szablony tonu marki.",koszt:"2k PLN (brand guidelines)",czas:"3 dni",comment:"LLM potrzebuje przykładów 'dobrego' e-maila do AutoPartner Max."},
+    {q:"Zespół wewnętrzny?",dec:"TAK",action:"Bartek + no-code platform (Make.com). Realizowalny bez dev.",koszt:"5–10k PLN",czas:"—",comment:"No-code: Make.com + LLM API connector. Szybko."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Aktualizacja promptu przy zmianie tonu marki. Brak retreningu.",koszt:"<1k PLN/mc",czas:"—",comment:"Prompt update = 30 minut pracy."},
+    {q:"Skalowanie?",dec:"TAK",action:"API skaluje. Koszt proporcjonalny do liczby ofert.",koszt:"Proporcjonalnie",czas:"—",comment:"Brak barier skalowania."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"A/B: 50% ofert z LLM-wiadomością vs 50% ręcznie. Metryka: open rate, konwersja.",koszt:"—",czas:"4 tyg.",comment:"Test przez 4 tyg. wystarczy do statystycznej istotności."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"Spersonalizowane e-maile = +15–25% open rate wg branżowych benchmarków."},
+    {q:"Całkowite koszty?",dec:"BARDZO NISKIE",action:"—",koszt:"25–50k PLN + <1k/mc",czas:"—",comment:"Jeden z najtańszych projektów całej listy."},
+    {q:"Harmonogram realistyczny?",dec:"TAK",action:"Pilot: 4–6 tyg.",koszt:"—",czas:"4–6 tyg.",comment:"Połączony z Pilotem #3 (follow-up) — te same narzędzia no-code."},
+   ]},
+
+  /* FAZA 4 */
+  {id:14,faza:4,name:"Monitoring interakcji z ofertą — Real-time Link Tracking",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"20–40k PLN",czasPilota:"3–5 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"Tracking pixel + webhook. Brak GPU, brak AI.",koszt:"—",czas:"—",comment:"Czysto inżynieryjny projekt — brak ML."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Logi interakcji: <1 MB/dzień.",koszt:"—",czas:"—",comment:"Minimalne wymagania storage."},
+    {q:"Integracja z systemami?",dec:"TAK",action:"SendGrid/Postmark tracking webhook → CRM alert. Standardowe API.",koszt:"3–5k PLN",czas:"1 tyg.",comment:"SendGrid ma wbudowany link tracking — gotowe bez custom dev."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Webhook <100ms. Alert do CRM/push notyfikacja natychmiastowy.",koszt:"—",czas:"—",comment:"Event-driven architektura. Prosta i niezawodna."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"WYMAGA WERYFIKACJI",action:"Tracking linków w B2B — prawnie OK. Regulamin komunikacji informuje klienta.",koszt:"1k PLN (legal check)",czas:"3 dni",comment:"B2B: brak wymogu opt-in dla link trackingu (vs e-mail marketing B2C)."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Handlowiec informowany jest wprost: 'klient otworzył link'. Brak ukrytych działań.",koszt:"—",czas:"—",comment:"Pełna transparentność dla handlowca."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Push notyfikacja do handlowca (mobile + desktop CRM).",koszt:"2k PLN",czas:"3 dni",comment:"Notyfikacja mobile ważna — handlowiec może być w terenie."},
+    {q:"Dane — dostępność i jakość?",dec:"TAK",action:"Dane powiązania link ↔ oferta ↔ klient ↔ handlowiec. Gotowe.",koszt:"—",czas:"—",comment:"Dane generowane w momencie wysyłki oferty."},
+    {q:"Zespół wewnętrzny?",dec:"TAK",action:"1 dev (2–3 dni pracy). Bartek konfiguracja CRM.",koszt:"5–10k PLN",czas:"—",comment:"Najprostszy projekt Fazy IV."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Monitoring uptime trackingu. Brak retreningu.",koszt:"<1k PLN/mc",czas:"—",comment:"Brak ML = brak utrzymania modelu."},
+    {q:"Skalowanie?",dec:"TAK",action:"SendGrid skaluje do milionów wiadomości. Brak barier.",koszt:"Wg cennika SendGrid",czas:"—",comment:"Skaluje natychmiast."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Testy end-to-end: wyślij ofertę → otwórz link → weryfikuj alert w CRM.",koszt:"—",czas:"1 tyg.",comment:"Prosty test manualny wystarczy do walidacji."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"BARDZO WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"Tracking to dojrzała technologia e-mail marketingowa. Ryzyko techniczne minimalne."},
+    {q:"Całkowite koszty?",dec:"BARDZO NISKIE",action:"—",koszt:"20–40k PLN + SendGrid fee/mc",czas:"—",comment:"Najtańszy projekt Fazy IV."},
+    {q:"Harmonogram realistyczny?",dec:"TAK",action:"Pilot: 3–5 tyg. Najszybszy w Fazie IV.",koszt:"—",czas:"3–5 tyg.",comment:"WOW efekt natychmiastowy — handlowcy od razu to docenią."},
+   ]},
+
+  {id:15,faza:4,name:"Automatyczne follow-up oparte o LLM",
+   verdict:"REALIZOWALNY",verdictCol:"#16a34a",
+   budzetPilota:"30–60k PLN",czasPilota:"4–6 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"LLM przez API. Brak GPU.",koszt:"~0,01 USD per follow-up",czas:"—",comment:"Pomijalne koszty API per wiadomość."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Historia follow-up w CRM. <1 MB/dzień.",koszt:"—",czas:"—",comment:"Śladowe."},
+    {q:"Integracja z systemami?",dec:"TAK",action:"CRM status oferty → timer trigger → LLM → wysyłka (Make.com/n8n).",koszt:"5–8k PLN",czas:"1–2 tyg.",comment:"No-code. Ten sam stack co projekt #13."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Cron job / timer. Brak wymagań latency.",koszt:"—",czas:"—",comment:"Async batch — nie realtime."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"WYMAGA PRACY",action:"Opt-out dla follow-up (klient może zrezygnować z przypomnień). Max 2 auto-follow-up.",koszt:"1k PLN",czas:"3 dni",comment:"B2B komunikacja handlowa — niższe wymagania niż B2C, ale opt-out wymagany."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Handlowiec widzi wszystkie wysłane follow-up w historii CRM. Może dezaktywować per klient.",koszt:"—",czas:"—",comment:"Transparentne i kontrolowalne przez handlowca."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Backend. Wynik w historii CRM.",koszt:"—",czas:"—",comment:"Brak nowych wymagań urządzeniowych."},
+    {q:"Dane — dostępność i jakość?",dec:"CZĘŚCIOWO",action:"Statusy ofert w CRM muszą być kompletne. Niekompletne statusy = błędne triggery.",koszt:"3k PLN (standaryzacja statusów)",czas:"1–2 tyg.",comment:"Prerequisite: Bartek i Rafał ustalają słownik statusów ofert przed startem."},
+    {q:"Zespół wewnętrzny?",dec:"TAK",action:"Bartek + Make.com. Realizowalny bez dev.",koszt:"5–10k PLN",czas:"—",comment:"To jest Pilot #3 z rekomendacji. No-code, szybki start."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Aktualizacja promptu (ton, treść). Monitoring wskaźnika opt-out.",koszt:"<1k PLN/mc",czas:"—",comment:"Brak retreningu ML."},
+    {q:"Skalowanie?",dec:"TAK",action:"Make.com skaluje. Koszt per operacja proporcjonalny.",koszt:"Wg cennika Make.com",czas:"—",comment:"Brak barier."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"A/B: 50% ofert z auto-follow-up vs 50% bez. Metryka: konwersja po 14/30 dniach.",koszt:"—",czas:"4 tyg.",comment:"30 dni testu statystycznie istotne przy ~50 ofertach/tydzień."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"WYSOKIE",action:"—",koszt:"—",czas:"—",comment:"Follow-up samo w sobie podnosi konwersję. Branżowy benchmark +8–15%."},
+    {q:"Całkowite koszty?",dec:"BARDZO NISKIE",action:"—",koszt:"30–60k PLN + <1k/mc",czas:"—",comment:"Pilot #3 z rekomendacji. Najtańszy pilotowy projekt."},
+    {q:"Harmonogram realistyczny?",dec:"TAK",action:"Pilot: 4–6 tyg.",koszt:"—",czas:"4–6 tyg.",comment:"Najszybszy z pilotów lead scoring + follow-up."},
+   ]},
+
+  {id:16,faza:4,name:"Automatyczne zlecenie realizacji po akceptacji (Order automation)",
+   verdict:"WARUNKOWO — FAZA 2",verdictCol:"#d97706",
+   budzetPilota:"120–200k PLN",czasPilota:"14–18 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"API integracje. Brak GPU, brak ML.",koszt:"—",czas:"—",comment:"Pure engineering — automation, nie AI."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Zlecenia magazynowe i faktury w ERP. Brak dodatkowych.",koszt:"—",czas:"—",comment:"ERP ma już storage dla zamówień."},
+    {q:"Integracja z systemami?",dec:"NIE GOTOWE",action:"ERP (rezerwacja + faktura) + WMS (zlecenie wydania) + CRM (status) — wszystkie trzy muszą być zsynchronizowane.",koszt:"60–100k PLN",czas:"8–12 tyg.",comment:"Bloker: ERP-WMS integracja może być problematyczna dla starszych systemów. Paweł IT kluczowy."},
+    {q:"Architektura sieci?",dec:"WYMAGA PROJEKTU",action:"Atomowe transakcje: jeśli ERP fail → rollback WMS. Saga pattern lub distributed transactions.",koszt:"20–30k PLN (architektura)",czas:"3–4 tyg.",comment:"Błąd rezerwacji przy jednoczesnej zmianie stanu = problem. Wymaga solid error handling."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"WYMAGA PRACY",action:"Automatyczne wystawianie faktur → weryfikacja podatkowa i prawna. Uprawnienia do podpisywania dokumentów.",koszt:"10k PLN (legal + compliance)",czas:"2–3 tyg.",comment:"Faktura wystawiona automatycznie musi spełniać wymagania KAS."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Log każdej automatycznej akcji. Możliwość cofnięcia (anulowanie przez handlowca w oknie 15 min).",koszt:"5k PLN",czas:"1 tyg.",comment:"Audit trail wymagany dla automatycznego fakturowania."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Potwierdzenie statusu dla handlowca (CRM) i magazyniera (WMS).",koszt:"5k PLN",czas:"1 tyg.",comment:"Desktop dla obu."},
+    {q:"Dane — dostępność i jakość?",dec:"TAK",action:"Dane oferty → dane zamówienia. Mapowanie produktowe wymagane.",koszt:"5k PLN",czas:"1 tyg.",comment:"Dane są, ale mapowanie oferta→zamówienie ERP wymaga weryfikacji."},
+    {q:"Zespół wewnętrzny?",dec:"NIE",action:"Doświadczony architekt systemów + developer ERP + developer WMS. Outsourcing konieczny.",koszt:"50–80k PLN",czas:"—",comment:"Najtrudniejszy technicznie projekt z całej listy."},
+    {q:"Konserwacja i retrening?",dec:"WYMAGA PLANU",action:"Monitoring każdego kroku workflow. SLA dla każdej integracji. On-call wymagany.",koszt:"8–12k PLN/mc",czas:"—",comment:"Automatyczne fakturowanie = zero tolerancji na błędy. Wysoki koszt utrzymania."},
+    {q:"Skalowanie?",dec:"WARUNKOWO",action:"ERP i WMS muszą obsłużyć wzrost wolumenu automatycznych zamówień.",koszt:"Wg obciążenia ERP",czas:"—",comment:"ERP throughput do weryfikacji przy 10× wolumenie."},
+    {q:"Testy i walidacja?",dec:"WYMAGANE",action:"Testy end-to-end: klient klika → ERP rezerwuje → WMS dostaje zlecenie → faktura → weryfikacja. 100 scenariuszy testowych.",koszt:"15k PLN",czas:"4–6 tyg.",comment:"Testy regresyjne krytyczne — błąd w produkcji = chaos logistyczny."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"ŚREDNIE",action:"Zależy od jakości integracji ERP-WMS. Ryzyko wysokie.",koszt:"—",czas:"—",comment:"Projekty ERP-WMS integracyjne mają historycznie 50–60% przekroczenia budżetu."},
+    {q:"Całkowite koszty?",dec:"WYSOKIE",action:"—",koszt:"120–200k PLN + 8–12k/mc",czas:"—",comment:"Najdroższy projekt Fazy IV. Uzasadnienie: eliminacja 15–30 min per zamówienie."},
+    {q:"Harmonogram realistyczny?",dec:"WYDŁUŻONY",action:"Pilot: 14–18 tyg. Pełne wdrożenie: 6–9 mc.",koszt:"—",czas:"14–18 tyg.",comment:"Rekomendacja: zacznij od Fazy 1–3 pilotów. Ten projekt = Faza 2."},
+   ]},
+
+  {id:17,faza:4,name:"AI Dashboard — analiza przyczyn utraty ofert",
+   verdict:"WARUNKOWO — FAZA 2",verdictCol:"#d97706",
+   budzetPilota:"80–140k PLN",czasPilota:"10–14 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"LLM API + BI platform. Brak GPU.",koszt:"3–5k PLN/mc (LLM API)",czas:"—",comment:"Batch klasyfikacja maili — nie realtime. Możliwy nocny batch."},
+    {q:"Przestrzeń dyskowa?",dec:"TAK",action:"Sklasyfikowane przyczyny w bazie danych. ~1 GB po roku.",koszt:"<1k PLN",czas:"—",comment:"Brak wymagań specjalnych."},
+    {q:"Integracja z systemami?",dec:"WYMAGA PRACY",action:"CRM (statusy ofert, notatki) + e-maile (IMAP) + dashboard BI (Power BI/Metabase).",koszt:"20–35k PLN",czas:"3–5 tyg.",comment:"Kluczowe: dostęp do treści e-maili zwrotnych klientów. Sprawdź politykę przechowywania e-maili."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Batch przetwarzanie nocne. Dashboard BI aktualizowany raz dziennie.",koszt:"—",czas:"—",comment:"Brak wymagań latency — analityka, nie realtime."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"WYMAGA PRACY",action:"E-maile klientów B2B przez LLM → DPA. Anonimizacja nazw klientów w promptach.",koszt:"5k PLN",czas:"1 tyg.",comment:"Treść korespondencji handlowej = dane poufne. Zero Data Retention API wymagane."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"TAK",action:"Kategoria + przykład zdania z e-maila. Manager rozumie skąd klasyfikacja.",koszt:"5k PLN (explainability UI)",czas:"1 tyg.",comment:"'Powód: za drogo (83%) — przykład: Wasza cena jest 2× wyższa niż konkurencja'"},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Dashboard dla managera i CFO. Desktop Power BI / Metabase.",koszt:"5k PLN (dashboard)",czas:"2 tyg.",comment:"Standardowe narzędzia BI — gotowe w dni, nie tygodnie."},
+    {q:"Dane — dostępność i jakość?",dec:"CZĘŚCIOWO",action:"Notatki CRM często informacyjnie puste ('brak decyzji'). E-maile zwrotne mogą nie istnieć. Prerequisite: standaryzacja CRM.",koszt:"10–20k PLN (data prep)",czas:"4–6 tyg.",comment:"Bloker: bez danych o przegranych ofertach model klasyfikuje szum."},
+    {q:"Zespół wewnętrzny?",dec:"CZĘŚCIOWO",action:"LLM engineer + Bartek (BI) + Rafał (walidacja kategorii). Możliwy przy wsparciu zewnętrznym.",koszt:"25–40k PLN",czas:"—",comment:"Bartek może budować dashboard. LLM klasyfikacja wymaga eksperta."},
+    {q:"Konserwacja i retrening?",dec:"TAK",action:"Miesięczna walidacja kategorii z Rafałem. Aktualizacja promptu przy nowych wzorcach.",koszt:"2k PLN/mc",czas:"—",comment:"Kategorie przyczyn utraty mogą ewoluować — monitoring wymagany."},
+    {q:"Skalowanie?",dec:"TAK",action:"Batch LLM skaluje. Power BI/Metabase skaluje.",koszt:"Proporcjonalnie do liczby e-maili",czas:"—",comment:"Brak barier skalowania."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Manualnie sklasyfikuj 200 ofert → porównaj z LLM. Metryki: F1 score per kategoria.",koszt:"5k PLN",czas:"2 tyg.",comment:"Rafał (Sprzedaż) jako ekspert domenowy do walidacji."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"ŚREDNIE",action:"Zależy od jakości danych wejściowych. Bez treści e-maili → model słaby.",koszt:"—",czas:"—",comment:"Warunek sukcesu: co najmniej 50% ofert z treścią zwrotną (mail lub notatka)."},
+    {q:"Całkowite koszty?",dec:"ŚREDNIE",action:"—",koszt:"80–140k PLN + 5–7k/mc",czas:"—",comment:"Warunek prerequisite: standaryzacja CRM (plan 30 dni danych)."},
+    {q:"Harmonogram realistyczny?",dec:"WYDŁUŻONY",action:"Pilot: 10–14 tyg. Warunek: dane CRM standaryzowane przed startem.",koszt:"—",czas:"10–14 tyg.",comment:"Rekomendacja: startuj po Pilotach #1–3 gdy CRM jest czystszy."},
+   ]},
+
+  {id:18,faza:4,name:"AI Predykcje — elastyczność cenowa i prognoza popytu",
+   verdict:"WARUNKOWO — FAZA 3",verdictCol:"#dc2626",
+   budzetPilota:"200–350k PLN",czasPilota:"16–20 tyg.",
+   pytania:[
+    {q:"Moc obliczeniową (GPU)?",dec:"TAK",action:"Time Series ML (Prophet/XGBoost) = CPU. Brak GPU.",koszt:"5–10k PLN/mc (ML platform)",czas:"—",comment:"Azure ML / GCP Vertex dla trenowania. Inference CPU only."},
+    {q:"Przestrzeń dyskowa?",dec:"NIE GOTOWE",action:"Data Warehouse wymagany — 3+ lata historii 420k SKU × oddziały × sezony. ~500 GB–2 TB.",koszt:"30–60k PLN (DWH setup)",czas:"6–12 mc (DWH budowa)",comment:"Bloker #1: brak DWH. Bez niego projekt niemożliwy."},
+    {q:"Integracja z systemami?",dec:"NIE GOTOWE",action:"ERP (historia zamówień) + CRM (oferty wygrane/przegrane) + zewnętrzne API (pogoda, paliwa, CEPiK park aut).",koszt:"50–80k PLN",czas:"6–10 tyg.",comment:"Bloker #2: brak połączonych źródeł danych. Wymaga API layer z projektu #6."},
+    {q:"Architektura sieci?",dec:"TAK",action:"Batch predykcja nocna. Kupiec widzi prognozy rano.",koszt:"—",czas:"—",comment:"Brak wymagań latency. Batch computation."},
+    {q:"Bezpieczeństwo i regulacje?",dec:"TAK",action:"Dane wewnętrzne + publiczne (pogoda, CEPiK). Niskie ryzyko RODO.",koszt:"2k PLN",czas:"—",comment:"Dane zakupowe = wewnętrzne. Pogoda/paliwa = publiczne. Brak danych osobowych."},
+    {q:"Zgodność i etyka / wyjaśnialność?",dec:"WYMAGA PRACY",action:"Kupcy muszą rozumieć DLACZEGO model rekomenduje zamówienie 500 szt. SHAP values lub prosty opis.",koszt:"10k PLN (explainability)",czas:"2 tyg.",comment:"'Wzrost o 340 szt. bo: sezon opon + spadek temp. + 12 warsztatów w regionie'. Kupcy nie zaufają 'czarnej skrzynce'."},
+    {q:"Na jakie urządzenia?",dec:"TAK",action:"Dashboard dla kupców i logistyki. Desktop-first.",koszt:"10–15k PLN",czas:"2 tyg.",comment:"Prognoza + rekomendacja zamówienia + link do zatwierdź w ERP."},
+    {q:"Dane — dostępność i jakość?",dec:"NIE GOTOWE",action:"Historia sprzedaży zanieczyszczona zwrotami i błędnymi zamówieniami. Wymaga intensywnego data cleaning.",koszt:"40–70k PLN",czas:"8–12 tyg.",comment:"Bloker #3: garbage data → garbage model. Czyszczenie danych = ścieżka krytyczna."},
+    {q:"Zespół wewnętrzny?",dec:"NIE",action:"Data Scientist senior + Data Engineer (DWH) + ML Engineer. Wszystkiego brak.",koszt:"150–250k PLN/rok (zatrudnienie lub outsourcing)",czas:"—",comment:"Bloker #4: brak kompetencji wewnętrznych. Outsourcing konieczny."},
+    {q:"Konserwacja i retrening?",dec:"WYMAGA PLANU",action:"Tygodniowy retrening modelu na nowych danych. Monitoring dryftu sezonowego. MLOps wymagany.",koszt:"10–15k PLN/mc",czas:"—",comment:"Modele Time Series dryftują sezonowo — retrening krytyczny."},
+    {q:"Skalowanie?",dec:"WARUNKOWO",action:"DWH wymagany jako fundament skalowania. Bez DWH → brak skalowalności.",koszt:"Wg rozmiarów DWH",czas:"—",comment:"Pilot 2 kategorie → pełny rollout po DWH LIVE (Faza 3)."},
+    {q:"Testy i walidacja?",dec:"TAK",action:"Backtesting: model trenowany do miesiąca X, testowany na X+1 do X+6. Metryka: MAPE <20%.",koszt:"10k PLN",czas:"4 tyg.",comment:"MAPE <20% = realistyczny cel dla dystrybucji B2B."},
+    {q:"Prawdopodobieństwo osiągnięcia metryk?",dec:"NISKIE-ŚREDNIE",action:"Zależy od usunięcia wszystkich 4 blokerów.",koszt:"—",czas:"—",comment:"Bez DWH + czystych danych + DS = projekt nie może wystartować."},
+    {q:"Całkowite koszty?",dec:"WYSOKIE",action:"—",koszt:"200–350k PLN + 15k/mc + DWH",czas:"—",comment:"Najdroższy projekt całej listy. Najwyższy ROI w 3-letnim horyzoncie."},
+    {q:"Harmonogram realistyczny?",dec:"NIE TERAZ — FAZA 3",action:"Pilot: 16–20 tyg. Warunki: DWH (6–12 mc), DS (rekrutacja 2–4 mc), dane czyste.",koszt:"—",czas:"16–20 tyg. po spełnieniu warunków",comment:"Rekomendacja: zaplanuj w Fazie 3 roadmapy. Buduj DWH od Fazy 1 jako fundament."},
+   ]},
+];
+
+/* ── buduj UI ── */
+let activePhase = 1;
+let activeProj  = 1;
+
+const PHASE_COLS = {1:"#16a34a",2:"#2563eb",3:"#d97706",4:"#7c3aed"};
+const Q_LABELS = [
+  "Moc obliczeniowa (GPU)?",
+  "Przestrzeń dyskowa?",
+  "Integracja z systemami?",
+  "Architektura i przepustowość sieci?",
+  "Bezpieczeństwo i regulacje?",
+  "Zgodność i etyka / wyjaśnialność?",
+  "Na jakie urządzenia?",
+  "Dane — dostępność i jakość?",
+  "Zespół wewnętrzny?",
+  "Konserwacja i retrening modelu?",
+  "Skalowanie rozwiązania?",
+  "Testy i walidacja?",
+  "Prawdopodobieństwo osiągnięcia metryk?",
+  "DODATKOWE: Całkowite koszty?",
+  "DODATKOWE: Harmonogram projektu?",
+];
+
+function buildPhaseNav(){
+  const wrap = document.getElementById('phase-nav');
+  FAZY.forEach(f=>{
+    const btn = document.createElement('button');
+    btn.className = 'phase-btn'+(f.id===activePhase?' active':'');
+    btn.textContent = f.name;
+    btn.style.borderColor = f.col;
+    if(f.id===activePhase){btn.style.background=f.col;btn.style.color='#fff';}
+    else{btn.style.color=f.col;btn.style.background='#fff';}
+    btn.onclick = ()=>{
+      activePhase=f.id;
+      const firstP = PROJEKTY.find(p=>p.faza===activePhase);
+      activeProj = firstP ? firstP.id : activeProj;
+      buildPhaseNav(); buildProjNav(); renderPanel();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function buildProjNav(){
+  const wrap = document.getElementById('proj-nav');
+  wrap.innerHTML='';
+  const col = PHASE_COLS[activePhase];
+  const projs = PROJEKTY.filter(p=>p.faza===activePhase);
+  projs.forEach(p=>{
+    const btn = document.createElement('button');
+    btn.className='proj-btn'+(p.id===activeProj?' active':'');
+    btn.textContent='#'+p.id+' '+p.name.substring(0,30)+(p.name.length>30?'…':'');
+    btn.style.borderColor=col;
+    if(p.id===activeProj){btn.style.background=col;btn.style.color='#fff';}
+    else{btn.style.color='#333';}
+    btn.onclick=()=>{activeProj=p.id;buildProjNav();renderPanel();};
+    wrap.appendChild(btn);
+  });
+}
+
+function decClass(dec){
+  if(dec==='TAK'||dec==='REALIZOWALNY'||dec==='BARDZO WYSOKIE'||dec==='BARDZO NISKIE') return 'dec-tak';
+  if(dec.startsWith('NIE')||dec==='WYMAGANE'||dec==='NIE GOTOWE') return 'dec-nie';
+  return 'dec-partial';
+}
+
+function renderPanel(){
+  const proj = PROJEKTY.find(p=>p.id===activeProj);
+  if(!proj) return;
+  const col = PHASE_COLS[proj.faza];
+  const faza = FAZY.find(f=>f.id===proj.faza);
+  const verdCol = proj.verdictCol;
+
+  /* count tak/nie */
+  let takCount=0,nieCount=0,partCount=0;
+  proj.pytania.forEach(p=>{
+    const c=decClass(p.dec);
+    if(c==='dec-tak')takCount++;
+    else if(c==='dec-nie')nieCount++;
+    else partCount++;
+  });
+  const totalBudget = proj.pytania.map(p=>p.koszt).filter(k=>k!=='—'&&k!=='Proporcjonalnie'&&!k.includes('Wg')&&!k.includes('wg'));
+  const totalTime   = proj.pytania.map(p=>p.czas).filter(k=>k!=='—');
+
+  document.getElementById('main-panel').innerHTML=`
+    <div class="panel-header" style="background:${col}15;border-bottom:1px solid ${col}30">
+      <div>
+        <div class="panel-title" style="color:${col}">#${proj.id} — ${proj.name}</div>
+        <div class="panel-sub" style="color:#666">${faza.name}</div>
+      </div>
+      <div>
+        <span class="verdict-badge" style="background:${verdCol}20;color:${verdCol}">${proj.verdict}</span>
+        <div style="font-size:10px;color:#888;margin-top:3px;text-align:right">Pilot: ${proj.budzetPilota} · ${proj.czasPilota}</div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num" style="color:#16a34a">${takCount}</div><div class="stat-lbl">TAK</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:#d97706">${partCount}</div><div class="stat-lbl">Wymaga pracy</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:#dc2626">${nieCount}</div><div class="stat-lbl">Bloker / NIE</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:#7c3aed">${proj.budzetPilota}</div><div class="stat-lbl">Budżet pilota</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:#2563eb">${proj.czasPilota}</div><div class="stat-lbl">Czas pilota</div></div>
+    </div>
+    <div class="tbl-wrap">
+    <table>
+      <tr>
+        <th style="width:22px">#</th>
+        <th style="min-width:140px">Pytanie o wykonalność</th>
+        <th style="width:90px">TAK / JESZCZE NIE</th>
+        <th style="min-width:160px">Wymagane działania</th>
+        <th style="width:100px">Szacowany koszt</th>
+        <th style="width:80px">Szac. czas</th>
+        <th style="min-width:160px">Komentarz</th>
+      </tr>
+      ${proj.pytania.map((p,i)=>`
+      <tr>
+        <td class="q-num">${i+1}</td>
+        <td class="q-text">${Q_LABELS[i]}</td>
+        <td class="${decClass(p.dec)}">${p.dec}</td>
+        <td class="action-txt">${p.action}</td>
+        <td class="cost-txt">${p.koszt}</td>
+        <td class="time-txt">${p.czas}</td>
+        <td class="comment-txt">${p.comment}</td>
+      </tr>`).join('')}
+    </table>
+    </div>
+  `;
+}
+
+buildPhaseNav();
+buildProjNav();
+renderPanel();
+</script>
+</body>
+</html>
